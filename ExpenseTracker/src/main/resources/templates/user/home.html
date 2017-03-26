@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="">
+<meta name="author" content="">
+
+<title>Expense Tracker</title>
+
+
+<link rel="stylesheet"
+	href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script
+	src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<style>
+	
+.table-editable {
+    position: relative;
+
+.glyphicon {
+    font-size: 20px;
+}
+}
+
+.table-remove {
+    color: #700;
+    cursor: pointer;
+
+&:hover {
+     color: #f00;
+ }
+}
+
+.table-save {
+    cursor: pointer;
+
+&:hover {
+     color: #f00;
+ }
+}
+
+.table-add {
+    color: #070;
+    cursor: pointer;
+    position: absolute;
+    top: 8px;
+    right: 0;
+
+&:hover {
+     color: #0b0;
+ }
+}
+	</style>
+</head>
+<body>
+
+
+<div class="container">
+	<div>
+		<label class="hide" id="username" th:text="${userName}"></label>
+	</div>
+		
+	<ul class="nav nav-tabs">
+	  <li class="active"><a data-toggle="tab" href="#expensesTab">Expenses</a></li>
+	  <li><a data-toggle="tab" href="#reportTab">Report</a></li>
+	</ul>
+	<div class="tab-content">
+		<div id="expensesTab" class="tab-pane fade in active">			
+			<div id="table" class="table-editable">
+				<span id="table-add" class="table-add glyphicon glyphicon-plus"></span>
+				<table id="expenseTable" class="table">
+					<tr>
+						<th>Date</th>
+						<th>Amount</th>
+						<th>Description</th>
+						<th>Delete</th>
+						<th>Save</th>
+					</tr>
+	
+					<!-- This is our clonable table line -->
+					<tr class="hide">
+						<td class="hide">-1</td>
+						<td contenteditable="true"></td>
+						<td contenteditable="true"></td>
+						<td contenteditable="true"></td>
+						<td><span id="table-remove" class="table-remove glyphicon glyphicon-remove"></span></td>
+						<td><span id="table-save" class="table-save glyphicon glyphicon-floppy-disk"></span></td>					
+					</tr>
+				</table>
+			</div>
+		</div>
+		<div id="reportTab" class="tab-pane fade">
+			
+	      	<div id="table">
+				<table id="reportTable" class="table">
+					<tr>
+						<th>Year</th>
+						<th>Week</th>
+						<th>Sum</th>
+					</tr>
+				</table>
+			</div>
+			<br/>
+			<div>
+				<form class="form-signin">
+					<input type="text" id="start" th:placeholder="YYYY-MM-DD"
+						class="form-control" /> <br/>
+					<input type="text" id="end" th:placeholder="YYYY-MM-DD"
+						class="form-control" /> <br/>
+						<button type="button" id="filter" value="Filter" class="btn btn-lg btn-primary btn-block" th:text="Filter"></button>
+				</form> 				
+			</div><br/>
+			<div id="table">
+				<table id="filteredExpenseTable" class="table">
+					<tr>
+						<th>Date</th>
+						<th>Amount</th>
+						<th>Description</th>
+					</tr>
+				</table>
+			</div>
+	    </div>
+	</div>
+</div>
+	
+	
+	
+	<script>
+	$( document ).ready(function() {	
+		var $TABLE = $('#table');
+		var username = $('#username').text();
+		
+		var url = "/users/"+username+"/expenses/"
+		$.ajax({
+			url : url,
+			type : "GET",
+			success : function(expenses) {
+				console.log(expenses);
+				var trHtml = '';
+				$.each(expenses, function(i, item){
+					trHtml += '<tr><td class="hide">'+ item.id +'</td>' +
+					'<td contenteditable="true">' + item.date + '</td>'+
+					'<td contenteditable="true">' +item.amount + '</td>'+
+					'<td contenteditable="true">' +item.description + '</td>'+
+					'<td><span id="table-remove" class="table-remove glyphicon glyphicon-remove"></span></td>'+
+					'<td><span id="table-save" class="table-save glyphicon glyphicon-floppy-disk"></span></td></tr>';  
+				});
+				$('#expenseTable').append(trHtml);
+			},
+			error : function(jqXHR, textStatus, errorThrown) {
+				console.log(errorThrown);
+			}
+		});
+		
+		var weeklyReport = function(){
+			url = "/users/"+username+"/report/weekly"
+			$.ajax({
+				url : url,
+				type : "GET",
+				success : function(report) {
+					$("#reportTable").find("tr:gt(0)").remove();
+					var trHtml = '';
+					$.each(report, function(i, item){
+						trHtml += '<tr><td>'+ item.year +'</td>' +
+						'<td>' + item.week + '</td>'+
+						'<td>' +item.sum + '</td></tr>';  
+					});
+					$('#reportTable').append(trHtml);
+				},
+				error : function(jqXHR, textStatus, errorThrown) {
+					console.log(errorThrown);
+				}
+			});
+		}
+		
+		weeklyReport();				
+		
+		
+		$('#table-add').click(function() {
+			var $clone = $TABLE.find('tr.hide').clone(true)
+					.removeClass('hide table-line');
+			$TABLE.find('table').append($clone);			
+		});
+		
+		$("#expenseTable").on('click','.table-remove',function(){
+		     var currentRow = $(this).closest("tr")[0]; 
+		     var cells = currentRow.cells;
+
+		     var id = cells[0].textContent;		
+		     console.log(id);
+		     if(id != '-1'){
+		    	 url = "/users/"+username+"/expenses/"+id;
+			     $.ajax({
+						url : url,
+						type : "DELETE",
+						context: this,
+						success : function(result) {
+							jQuery(this).parents('tr').detach();
+							weeklyReport();
+						},
+						error : function(jqXHR, textStatus, errorThrown) {
+							console.log(errorThrown);
+						}
+					});
+		     }else{
+		    	 jQuery(this).parents('tr').detach();
+		     }	     
+		});
+		
+		$("#expenseTable").on('click','.table-save',function(){
+		     var currentRow = $(this).closest("tr")[0]; 
+		     var cells = currentRow.cells;
+		     
+			 var data = {};
+		     data.id = cells[0].textContent;
+		     data.date = new Date(cells[1].textContent);
+		     data.amount = parseFloat(cells[2].textContent);
+		     data.description = cells[3].textContent;
+		     url = "";
+		     
+		     if(data.id != -1){
+			     url = "/users/"+username+"/expenses/"+data.id;			     
+		     }else{
+		    	 url = "/users/"+username+"/expenses/";
+		     }
+		     console.log(data);
+		     $.ajax({
+				url : url,
+				type : "POST",
+				data: data,
+				context: this,
+				success : function(result) {
+					console.log(result);
+					weeklyReport();
+				},
+				error : function(jqXHR, textStatus, errorThrown) {
+					console.log(errorThrown);
+				}
+			});
+		});
+		
+		$('#filter').click(function(){
+			var startdate = new Date($('#start').val());
+			var enddate = new Date($('#end').val());
+			var from = startdate.toISOString().slice(0,10);
+			var to = enddate.toISOString().slice(0,10);
+			
+			
+			data = {
+					from : from,
+					to : to
+					};
+			var url = "/users/"+username+"/report/"
+			$.ajax({
+				url : url,
+				type : "GET",
+				data : data,
+				success : function(filteredExpense) {
+					$("#filteredExpenseTable").find("tr:gt(0)").remove();
+					var trHtml = '';
+					$.each(filteredExpense, function(i, item){
+						trHtml += '<tr><td>'+ item.date +'</td>' +
+						'<td>' + item.amount + '</td>'+
+						'<td>' +item.description + '</td></tr>';  
+					});
+					$('#filteredExpenseTable').append(trHtml);
+				},
+				error : function(jqXHR, textStatus, errorThrown) {
+					console.log(errorThrown);
+				}
+			});
+			
+		});
+	});
+	</script>
+
+</body>
+</html>

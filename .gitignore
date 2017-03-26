@@ -1,0 +1,9 @@
+.metadata/
+.recommenders/
+RemoteSystemsTempFiles/
+ExpenseTracker/target/
+
+# Eclipse
+ExpenseTracker/.classpath
+ExpenseTracker/.project
+ExpenseTracker/.settings/
